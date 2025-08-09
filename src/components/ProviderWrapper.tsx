@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ export default function ProviderWrapper({ children }: { children: ReactNode }) {
         <NuqsAdapter>
           <QueryClientProvider client={queryClient}>
             {children}
+            <Toaster />
           </QueryClientProvider>
         </NuqsAdapter>
       </Authenticated>
