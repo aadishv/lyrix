@@ -91,7 +91,9 @@ export default function CommentPage() {
   return (
     <div className="flex flex-col gap-4 px-16">
       <div className="flex flex-row items-center gap-2 font-serif">
-        <h1 className="flex font-serif gap-2"><MessageSquare /> Your Comments</h1>
+        <h1 className="flex font-serif gap-2">
+          <MessageSquare /> Your Comments
+        </h1>
         <span className="text-sm text-black/50">
           {isLoading ? "Loading..." : `${filtered.length} result(s)`}
         </span>

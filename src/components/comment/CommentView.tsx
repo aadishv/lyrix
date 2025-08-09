@@ -225,13 +225,13 @@ export function CommentReadonly({
         </div>
       </div>
       <div className="flex gap-2 h-10">
-        {closer &&
+        {closer && (
           <DialogClose asChild>
             <Button className="ml-auto" onClick={closer}>
               Link this comment
             </Button>
           </DialogClose>
-        }
+        )}
       </div>
     </div>
   );
