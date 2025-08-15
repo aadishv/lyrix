@@ -33,9 +33,6 @@ import { Link, Plus, Save, Share2, Trash } from "lucide-react";
 import { ShareLinkComponent } from "@/components/ShareLink";
 import { Suspense, useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@radix-ui/react-select";
-import { SelectGroup } from "@/components/ui/select";
 
 function SongDetails({ song }: { song: Song }) {
   /* info card */
