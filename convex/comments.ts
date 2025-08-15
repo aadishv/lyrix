@@ -1,7 +1,7 @@
-import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { v, Infer } from "convex/values";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-
+import { internal } from "./_generated/api";
 const colors: string[] = [
   "rgba(255, 154, 162, 0.7)", // Red (Watermelon)
   "rgba(255, 183, 107, 0.7)", // Orange (Cantaloupe)
@@ -23,14 +23,14 @@ export const commentValidator = v.object({
   linked: v.union(v.number(), v.null()),
 });
 
-export const getUserCommentsForSong = query({
+export const getUserCommentsForSongInternal = internalQuery({
   args: {
     songId: v.number(),
+    userId: v.id("users"),
   },
   returns: v.array(commentValidator),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
+    const { userId } = args;
     // ACTUAL comments
     const comments = (
       await ctx.db
@@ -63,6 +63,22 @@ export const getUserCommentsForSong = query({
       if (a.start !== b.start) return a.start - b.start;
       return a.end - b.end;
     });
+  },
+});
+export const getUserCommentsForSong = query({
+  args: {
+    songId: v.number(),
+  },
+  returns: v.array(commentValidator),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    // ACTUAL comments
+    const comments: Array<Infer<typeof commentValidator>> = await ctx.runQuery(internal.comments.getUserCommentsForSongInternal, {
+      songId: args.songId,
+      userId,
+    });
+    return comments;
   },
 });
 

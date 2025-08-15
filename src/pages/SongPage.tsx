@@ -33,6 +33,9 @@ import { Link, Plus, Save, Share2, Trash } from "lucide-react";
 import { ShareLinkComponent } from "@/components/ShareLink";
 import { Suspense, useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@radix-ui/react-select";
+import { SelectGroup } from "@/components/ui/select";
 
 function SongDetails({ song }: { song: Song }) {
   /* info card */
@@ -75,22 +78,49 @@ function SongDetails({ song }: { song: Song }) {
 function ShareSong({ id }: { id: number }) {
   const runShare = useMutation(api.share.shareSong);
   const [link, setLink] = useState(null as string | null);
+  const [isLive, setIsLive] = useState(false);
   useEffect(() => {
     void runShare({
+      live: isLive,
       songId: id
     }).then(res => setLink(res));
-  }, [id, runShare])
+  }, [id, runShare, isLive]);
+  console.log(isLive);
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Share comments snapshot</DialogTitle>
+        <DialogTitle>Share comments</DialogTitle>
       </DialogHeader>
-      <p>
-        Share a link to a snapshot of your comments on this song.{" "}
-        <b>
-          It is a snapshot, so changes you make after this will not be mirrored.
-        </b>
-      </p>
+      <div>
+        <div>
+          <input
+            type="radio"
+            id="share-snapshot"
+            name="share-type"
+            value="default"
+            checked={!isLive}
+            onChange={() => setIsLive(false)}
+            className="mr-2"
+          />
+          <label htmlFor="share-snapshot">
+            <b>Share snapshot.</b> It is a snapshot, so changes you make after this will not be mirrored.
+          </label>
+        </div>
+        <div>
+          <input
+            type="radio"
+            id="share-live"
+            name="share-type"
+            value="live"
+            checked={isLive}
+            onChange={() => setIsLive(true)}
+            className="mr-2"
+          />
+          <label htmlFor="share-live">
+            <b>Share live copy.</b> Will update with any and all changes you make to your comments on this song. <em>Cannot be undone.</em>
+          </label>
+        </div>
+      </div>
       <Suspense fallback={<Skeleton className="w-full h-10" />}>
         <ShareLinkComponent
           link={`${window.location.origin.toString()}/song?id=${id}&shared=${link}`}

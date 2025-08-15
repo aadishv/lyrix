@@ -36,7 +36,7 @@ export default defineSchema({
     song: v.number(),
     link: v.string(),
 
-    comments: v.array(
+    comments: v.union(v.array(
       v.object({
         // can't link to `comments` since this is a
         // snapshot
@@ -46,6 +46,6 @@ export default defineSchema({
         title: v.string(),
         content: v.string(),
       }),
-    ),
+    ), v.id("users")),
   }).index("song_and_link", ["song", "link"]),
 });

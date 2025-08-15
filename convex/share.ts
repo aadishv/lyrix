@@ -1,10 +1,11 @@
 // import { randomBytes } from "node:crypto";
-import { v } from "convex/values";
+import { Infer, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
+import { commentValidator } from "./comments";
 
-export const randomHex = (): string => {
+const randomHex = (): string => {
   const bytes = new Uint8Array(3);
   crypto.getRandomValues(bytes);
   const hex = Array.from(bytes, (byte) =>
@@ -31,9 +32,16 @@ export const sharedValidator = v.object({
   _creationTime: v.number(),
 });
 
+const toMinimal = (comments: Infer<typeof commentValidator>[]) => comments.map(c => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { user, _id, _creationTime, song, linked, ...comment } = c;
+  return comment;
+});
+
 export const shareSong = mutation({
   args: {
     songId: v.number(),
+    live: v.boolean(),
   },
   returns: v.string(), // link
   handler: async (ctx, args) => {
@@ -42,20 +50,26 @@ export const shareSong = mutation({
       throw new Error("Unauthenticated");
     }
     const { songId } = args;
-    const comments = await ctx.runQuery(api.comments.getUserCommentsForSong, {
-      songId,
-    });
     const link = randomHex();
-    await ctx.db.insert("shared", {
-      user: userId,
-      song: songId,
-      link,
-      comments: comments.map(c => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { user, _id, _creationTime, song, linked, ...comment } = c;
-        return comment;
-      }),
-    });
+    if (!args.live) {
+      const comments: Array<Infer<typeof commentValidator>> = await ctx.runQuery(internal.comments.getUserCommentsForSongInternal, {
+        songId,
+        userId
+      });
+      await ctx.db.insert("shared", {
+        user: userId,
+        song: songId,
+        link,
+        comments: toMinimal(comments),
+      });
+    } else {
+      await ctx.db.insert("shared", {
+        user: userId,
+        song: songId,
+        link,
+        comments: userId, // store the user ID for live comments
+      });
+    }
     return link;
   },
 });
@@ -78,6 +92,14 @@ export const getSharedComments = query({
     if (items.length == 0) {
       return null;
     }
-    return items[0].comments;
+    if (Array.isArray(items[0].comments)) {
+      return items[0].comments;
+    } else {
+     const userComments: Array<Infer<typeof commentValidator>> = await ctx.runQuery(internal.comments.getUserCommentsForSongInternal, {
+        songId: args.songId,
+        userId: items[0].comments,
+      });
+      return toMinimal(userComments);
+    }
   },
 });
