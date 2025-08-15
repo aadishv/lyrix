@@ -18,6 +18,7 @@ import type * as authFunctions from "../authFunctions.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as library from "../library.js";
+import type * as share from "../share.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   http: typeof http;
   library: typeof library;
+  share: typeof share;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

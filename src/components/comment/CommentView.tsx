@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AutoResizingTextarea from "../AutoResizingTextarea";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Song, useSong, type Comment } from "@/hooks";
+import { MinimalComment, Song, useSong, type Comment } from "@/hooks";
 import { commentsFocus } from "@/components/comment/state";
 import { useAtom } from "@xstate/store/react";
 import Confirm from "../Confirm";
@@ -182,19 +182,23 @@ export function CommentReadonly({
   comment,
   song,
   closer,
+  showSong = false,
 }: {
-  comment: Comment;
+  comment: Comment | MinimalComment;
   song: Song;
   closer?: () => void;
+  showSong?: boolean;
 }) {
-  const songLinked = useSong(comment.linked);
+  const songLinked = useSong("linked" in comment ? comment.linked : null);
 
   return (
     <div
       className="bg-white rounded-xl border-2 p-3"
       style={{ borderColor: comment.color }}
-      key={comment._id}
     >
+      {showSong &&
+        <a className="text-black/70" href={`/song?id=${song.id}`}><span className="text-black">{song.name}</span> by <span className="text-black">{song.artistName}</span> from <span className="text-black">{song.albumName}</span></a>
+      }
       <blockquote className="border-l-4 border-gray-300 p-2 bg-gray-100 italic whitespace-pre-line">
         {song.plainLyrics.slice(comment.start, comment.end)}
       </blockquote>

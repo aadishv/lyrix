@@ -7,6 +7,7 @@ import { useLibrary, type Comment, type Song } from "@/hooks";
 import { useQueryState } from "nuqs";
 import Fuse from "fuse.js";
 import { MessageSquare } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 type IndexedItem = {
   comment: Comment;
   song: Song;
@@ -48,9 +49,8 @@ export default function CommentPage() {
     });
     return (comments ?? []).map((c) => {
       // We don't have link target in getUserComments; use original or linked origin for context.
-      const ctxSongId = c.linked ?? c.song;
+      const ctxSongId = c.song;
       const song = songById.get(ctxSongId) ?? mkFallback(ctxSongId);
-      console.log(c.content);
       return {
         comment: c,
         song,
@@ -85,7 +85,6 @@ export default function CommentPage() {
     if (!fuse) return items;
     return fuse.search(q).map((r) => r.item);
   }, [items, fuse, query]);
-
   const isLoading = comments === undefined || songsLoading;
 
   return (
@@ -110,7 +109,7 @@ export default function CommentPage() {
 
       <div className="grid gap-4">
         {isLoading ? (
-          <div className="text-black/50">Loading comments…</div>
+         <Skeleton className="h-40 w-full" />
         ) : filtered.length === 0 ? (
           <div className="text-black/50">No comments found.</div>
         ) : (
@@ -119,6 +118,7 @@ export default function CommentPage() {
               key={`${comment._id}:${comment.linked ?? "base"}:${comment.start}-${comment.end}`}
               comment={comment}
               song={song}
+              showSong
             />
           ))
         )}

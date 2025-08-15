@@ -92,6 +92,7 @@ export const getUserComments = query({
           start: comment.start,
           end: comment.end,
           linked: com.song,
+          song: comment.song,
         };
       }),
     );

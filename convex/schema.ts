@@ -31,4 +31,21 @@ export default defineSchema({
   })
     .index("song_and_user", ["song", "user"])
     .index("user", ["user"]),
+  shared: defineTable({
+    user: v.id("users"),
+    song: v.number(),
+    link: v.string(),
+
+    comments: v.array(
+      v.object({
+        // can't link to `comments` since this is a
+        // snapshot
+        start: v.number(),
+        end: v.number(),
+        color: v.string(),
+        title: v.string(),
+        content: v.string(),
+      }),
+    ),
+  }).index("song_and_link", ["song", "link"]),
 });

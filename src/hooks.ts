@@ -4,8 +4,10 @@ import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import { Infer } from "convex/values";
 import { commentValidator } from "convex/comments";
+import { minimalCommentValidator } from "convex/share";
 
 export type Comment = Infer<typeof commentValidator>;
+export type MinimalComment = Infer<typeof minimalCommentValidator>;
 
 export type Song = {
   id: number;
@@ -41,7 +43,6 @@ export const useTrackSearch = (query: {
   const { isLoading, data } = useTSQuery({
     queryKey: ["trackSearch", query],
     queryFn: async () => {
-      console.log(params.toString());
       const response = await fetch(
         `https://lrclib.net/api/search?${params.toString()}`,
       );

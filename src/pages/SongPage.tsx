@@ -8,10 +8,10 @@ import {
   useElementSelection,
   useSong,
 } from "@/hooks";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Redirect } from "wouter";
-import CommentView from "@/components/comment/CommentView";
-import CommentHighlight from "@/components/comment/CommentHighlight";
+import CommentView, { CommentReadonly } from "@/components/comment/CommentView";
+import CommentHighlight, { MinimalCommentHighlight } from "@/components/comment/CommentHighlight";
 import { useAtom } from "@xstate/store/react";
 import {
   DialogHeader,
@@ -29,6 +29,10 @@ import {
   useCurrentSong,
 } from "@/components/comment/state";
 import Confirm from "@/components/Confirm";
+import { Link, Plus, Save, Share2, Trash } from "lucide-react";
+import { ShareLinkComponent } from "@/components/ShareLink";
+import { Suspense, useEffect, useState } from "react";
+import { useQueryState } from "nuqs";
 
 function SongDetails({ song }: { song: Song }) {
   /* info card */
@@ -65,6 +69,39 @@ function SongDetails({ song }: { song: Song }) {
         )}
       </div>
     </div>
+  );
+}
+
+function ShareSong({ id }: { id: number }) {
+  const runShare = useMutation(api.share.shareSong);
+  const [link, setLink] = useState(null as string | null);
+  useEffect(() => {
+    void runShare({
+      songId: id
+    }).then(res => setLink(res));
+  }, [id, runShare])
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Share comments snapshot</DialogTitle>
+      </DialogHeader>
+      <p>
+        Share a link to a snapshot of your comments on this song.{" "}
+        <b>
+          It is a snapshot, so changes you make after this will not be mirrored.
+        </b>
+      </p>
+      <Suspense fallback={<Skeleton className="w-full h-10" />}>
+        <ShareLinkComponent
+          link={`${window.location.origin.toString()}/song?id=${id}&shared=${link}`}
+        />
+      </Suspense>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="destructive">Cancel</Button>
+        </DialogClose>
+      </DialogFooter>
+    </>
   );
 }
 
@@ -119,47 +156,57 @@ function SongPageInternal({ id }: { id: number }) {
           <div className="flex-shrink-0 z-10 flex flex-row rounded-lg border shadow bg-white relative">
             <SongDetails song={data} />
             {/* button group */}
-            <div className="ml-auto h-full my-1 mr-1">
+            <div className="ml-auto gap-[3px] flex m-1">
               {data.isSaved ? (
-                <div className="flex flex-col">
-                  <div className="gap-1 mb-1 flex flex-col">
-                    <Button
-                      disabled={selection == null}
-                      onClick={handleNewComment}
-                      title={
-                        selection == null
-                          ? "Select lyrics to begin commenting"
-                          : ""
-                      }
-                    >
-                      Add comment to selection
-                    </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          disabled={selection == null}
-                          title={
-                            selection == null
-                              ? "Select lyrics to begin commenting"
-                              : ""
-                          }
-                        >
-                          Link comment to selection
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>Choose comment to link</DialogTitle>
-                        </DialogHeader>
-                        <CommentChooser />
-                        <DialogFooter>
-                          <DialogClose asChild>
-                            <Button variant="destructive">Cancel</Button>
-                          </DialogClose>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                <>
+                  <Button
+                    disabled={selection == null}
+                    onClick={handleNewComment}
+                    title={
+                      selection == null
+                        ? "Select lyrics to begin commenting"
+                        : "Comment on selection"
+                    }
+                    className="rounded rounded-l-xl"
+                  >
+                    <Plus />
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        disabled={selection == null}
+                        title={
+                          selection == null
+                            ? "Select lyrics to begin commenting"
+                            : "Link comment to this song"
+                        }
+                        className="rounded"
+                      >
+                        <Link />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Choose comment to link</DialogTitle>
+                      </DialogHeader>
+                      <CommentChooser />
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="destructive">Cancel</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button title="Share your comments" className="rounded">
+                        <Share2 />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <ShareSong id={data.id} />
+                    </DialogContent>
+                  </Dialog>
                   <Confirm
                     message="Removing this song from your library will permanently delete any comments on it."
                     action="Unsave this song"
@@ -169,13 +216,18 @@ function SongPageInternal({ id }: { id: number }) {
                       }
                     }}
                   >
-                    <Button variant="destructive" className="ml-auto">
-                      Unsave
+                    <Button
+                      variant="destructive"
+                      title="Unsave"
+                      className="rounded-l"
+                    >
+                      <Trash />
                     </Button>
                   </Confirm>
-                </div>
+                </>
               ) : (
                 <Button
+                  className=""
                   variant="fancy"
                   onClick={() => {
                     if (data.id) {
@@ -183,7 +235,7 @@ function SongPageInternal({ id }: { id: number }) {
                     }
                   }}
                 >
-                  Save song
+                  <Save />
                 </Button>
               )}
             </div>
@@ -254,10 +306,81 @@ function SongPageInternal({ id }: { id: number }) {
   );
 }
 
+function SharedSongPage({ id, link, close }: { id: number, link: string, close: () => void }) {
+  const { isLoading, data } = useSong(id);
+
+  const comments = useQuery(api.share.getSharedComments, {
+    songId: id,
+    link: link,
+  }) ?? [];
+
+  return (
+    <div className="fixed inset-0 flex flex-col w-full overflow-hidden pt-16 lg:px-16 px-4">
+      {isLoading ? (
+        <Skeleton className="h-40 w-full top-15" />
+      ) : data ? (
+        <div className="flex flex-col">
+          {/* card */}
+          <div className="flex-shrink-0 z-10 flex flex-row rounded-lg border shadow bg-white relative">
+            <SongDetails song={data} />
+            <span className="bg-secondary my-2 rounded-xl pl-3 mb-auto">This is a shared snapshot of someone's comments on this song. <Button variant="ghost" onClick={close}>View original song</Button></span>
+          </div>
+          <div
+            className="flex relative"
+            style={{ height: "calc(100vh - 192px)" }}
+          >
+            {/* lyrics */}
+            <div className="w-[66%] relative">
+              <div className="absolute inset-4 overflow-y-auto">
+                <div className="text-sm whitespace-pre-wrap font-mono grid grid-cols-1 grid-rows-1">
+                  {comments && data?.isSaved && (
+                    <MinimalCommentHighlight
+                      comments={comments}
+                      song={data}
+                    />
+                  )}
+                  <div
+                    id="song-lyrics"
+                    style={{
+                      letterSpacing: 0,
+                      fontSize: "1em",
+                      gridArea: "1/1",
+                      zIndex: 1,
+                    }}
+                  >
+                    {data.plainLyrics || "No lyrics found."}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* comments */}
+            <div className="w-[33%] relative">
+              <div className="absolute inset-0 overflow-y-auto flex flex-col gap-4 p-4">
+                {comments &&
+                  comments.map((comment) => (
+                    <CommentReadonly key={JSON.stringify(comment)} comment={comment} song={data} />
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-destructive">Song not found.</div>
+      )}
+    </div>
+  );
+}
+
+
 export default function SongPage() {
   const [id] = useCurrentSong();
+  const [shared, setShared] = useQueryState<string | null>("shared", {
+    defaultValue: null,
+    parse: v => v,
+  });
+
   if (!id) {
     return <Redirect to="/404" />;
   }
-  return <SongPageInternal id={id} />;
+  return shared ? <SharedSongPage id={id} link={shared} close={() => void setShared(null)} /> : <SongPageInternal id={id} />;
 }
