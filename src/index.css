@@ -175,7 +175,9 @@
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 }
-
+:root {
+  background-color: var(--background);
+}
 body {
   letter-spacing: var(--tracking-normal);
 }
