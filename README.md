@@ -19,6 +19,10 @@ Lyrix is a powerful song organizer and lyrics analysis tool designed for music l
     * [MusixMatch API](https://developer.musixmatch.com/) for fetching song lyrics with community access.
     * [YouTube API](https://developers.google.com/youtube/v3) for video integration and search.
 
+## ⚠️ known issues
+
+* **MusixMatch API Rate Limiting**: The current MusixMatch implementation may encounter 401 errors with captcha challenges due to rate limiting or bot detection. This is a known limitation of the scraping-based approach. The system includes improved error handling and will provide clear error messages when this occurs. Consider using official API access or trying again later if you encounter these issues.
+
 ## 🚀 roadmap
 
 our project is under active development. here is our current progress:

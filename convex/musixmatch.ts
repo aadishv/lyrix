@@ -64,41 +64,85 @@ class MusixMatchAPI {
       "Cookie": "mxm_bab=AB",
     };
     
-    const response = await fetch(url, { headers });
-    const htmlContent = await response.text();
-    
-    // Regular expression to match `_app` script URLs
-    const pattern = /src="([^"]*\/_next\/static\/chunks\/pages\/_app-[^"]+\.js)"/g;
-    const matches = [...htmlContent.matchAll(pattern)];
-    
-    if (matches.length === 0) {
-      throw new Error("_app URL not found in the HTML content.");
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch MusixMatch search page: HTTP ${response.status} ${response.statusText}`);
+      }
+      
+      const htmlContent = await response.text();
+      
+      // Regular expression to match `_app` script URLs
+      const pattern = /src="([^"]*\/_next\/static\/chunks\/pages\/_app-[^"]+\.js)"/g;
+      const matches = [...htmlContent.matchAll(pattern)];
+      
+      if (matches.length === 0) {
+        console.error("MusixMatch HTML structure changed. No _app script found.");
+        console.error("HTML snippet:", htmlContent.substring(0, 1000));
+        throw new Error("_app URL not found in the HTML content. MusixMatch may have changed their site structure.");
+      }
+      
+      return matches[matches.length - 1][1]; // Get the last match
+    } catch (error) {
+      console.error("Error fetching MusixMatch app URL:", error);
+      throw new Error(`Failed to extract MusixMatch app URL: ${error instanceof Error ? error.message : String(error)}`);
     }
-    
-    return matches[matches.length - 1][1]; // Get the last match
   }
 
   private async getSecret(): Promise<string> {
     if (this.secret) return this.secret;
     
-    const appUrl = await this.getLatestApp();
-    const response = await fetch(appUrl, { headers: this.headers });
-    const javascriptCode = await response.text();
-    
-    // Regular expression to capture the string inside `from(...)`
-    const pattern = /from\(\s*"(.*?)"\s*\.split/;
-    const match = javascriptCode.match(pattern);
-    
-    if (!match) {
-      throw new Error("Encoded string not found in the JavaScript code.");
+    try {
+      const appUrl = await this.getLatestApp();
+      const fullAppUrl = appUrl.startsWith('http') ? appUrl : `https://www.musixmatch.com${appUrl}`;
+      
+      const response = await fetch(fullAppUrl, { headers: this.headers });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch MusixMatch JavaScript: HTTP ${response.status} ${response.statusText}`);
+      }
+      
+      const javascriptCode = await response.text();
+      
+      // Regular expression to capture the string inside `from(...)`
+      const pattern = /from\(\s*"(.*?)"\s*\.split/;
+      const match = javascriptCode.match(pattern);
+      
+      if (!match) {
+        console.error("MusixMatch JavaScript structure changed. Secret extraction pattern not found.");
+        console.error("JS snippet:", javascriptCode.substring(0, 2000));
+        
+        // Try alternative patterns
+        const alternativePatterns = [
+          /from\("([^"]+)"\)/,
+          /\.from\s*\(\s*"([^"]+)"/,
+          /"([A-Za-z0-9+/]{20,}={0,2})"\.split/,
+        ];
+        
+        for (const altPattern of alternativePatterns) {
+          const altMatch = javascriptCode.match(altPattern);
+          if (altMatch) {
+            console.log("Found secret using alternative pattern:", altPattern);
+            const encodedString = altMatch[1];
+            const reversedString = encodedString.split('').reverse().join('');
+            const decodedString = base64Decode(reversedString);
+            this.secret = decodedString;
+            return decodedString;
+          }
+        }
+        
+        throw new Error("Encoded string not found in the JavaScript code. MusixMatch may have changed their authentication method.");
+      }
+      
+      const encodedString = match[1];
+      const reversedString = encodedString.split('').reverse().join('');
+      const decodedString = base64Decode(reversedString);
+      
+      this.secret = decodedString;
+      return decodedString;
+    } catch (error) {
+      console.error("Error extracting MusixMatch secret:", error);
+      throw new Error(`Failed to extract MusixMatch secret: ${error instanceof Error ? error.message : String(error)}`);
     }
-    
-    const encodedString = match[1];
-    const reversedString = encodedString.split('').reverse().join('');
-    const decodedString = base64Decode(reversedString);
-    
-    this.secret = decodedString;
-    return decodedString;
   }
 
   private async generateSignature(url: string): Promise<string> {
@@ -131,17 +175,42 @@ class MusixMatchAPI {
   }
 
   private async makeRequest<T>(url: string): Promise<T> {
-    const cleanUrl = url.replace(/%20/g, '+').replace(/ /g, '+');
-    const fullUrl = this.baseUrl + cleanUrl;
-    const signedUrl = fullUrl + await this.generateSignature(fullUrl);
-    
-    const response = await fetch(signedUrl, { headers: this.headers });
-    
-    if (!response.ok) {
-      throw new Error(`MusixMatch API error: ${response.status} ${response.statusText}`);
+    try {
+      const cleanUrl = url.replace(/%20/g, '+').replace(/ /g, '+');
+      const fullUrl = this.baseUrl + cleanUrl;
+      const signedUrl = fullUrl + await this.generateSignature(fullUrl);
+      
+      const response = await fetch(signedUrl, { headers: this.headers });
+      
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`MusixMatch API HTTP error: ${response.status} ${response.statusText}`);
+        console.error("Response body:", responseText);
+        throw new Error(`MusixMatch API HTTP error: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      // Check the MusixMatch-specific status code
+      if (result.message?.header?.status_code !== 200) {
+        const statusCode = result.message?.header?.status_code;
+        const hint = result.message?.header?.hint;
+        
+        if (statusCode === 401) {
+          if (hint === "captcha") {
+            throw new Error("MusixMatch API blocked the request with captcha challenge. This may indicate rate limiting or bot detection. Try again later or use a different approach.");
+          }
+          throw new Error(`MusixMatch API authentication failed (401). ${hint ? `Hint: ${hint}` : 'The extracted secret may be invalid or expired.'}`);
+        }
+        
+        throw new Error(`MusixMatch API error: Status ${statusCode}${hint ? `, Hint: ${hint}` : ''}`);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error("MusixMatch API request failed:", error);
+      throw error;
     }
-    
-    return response.json();
   }
 }
 
@@ -169,10 +238,20 @@ export const searchTracks = action({
       const response = await musixMatchAPI.searchTracks(args.query, args.page || 1);
       
       if (response.message.header.status_code !== 200) {
-        throw new Error(`MusixMatch API error: ${response.message.header.status_code}`);
+        const statusCode = response.message.header.status_code;
+        const hint = response.message.header.hint;
+        
+        if (statusCode === 401) {
+          if (hint === "captcha") {
+            throw new Error("MusixMatch API is currently blocking requests with captcha challenges. This may indicate rate limiting or bot detection. Please try again later.");
+          }
+          throw new Error(`MusixMatch API authentication failed. ${hint ? `Hint: ${hint}` : 'The authentication secret may be invalid or expired.'}`);
+        }
+        
+        throw new Error(`MusixMatch API error: Status ${statusCode}${hint ? `, Hint: ${hint}` : ''}`);
       }
 
-      const tracks = response.message.body.track_list;
+      const tracks = response.message.body.track_list || [];
       return tracks.map(({ track }) => ({
         id: track.track_id,
         name: track.track_name,
@@ -186,7 +265,14 @@ export const searchTracks = action({
       }));
     } catch (error) {
       console.error("Error searching tracks:", error);
-      throw new Error(`Failed to search tracks: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Provide helpful error message for common issues
+      if (errorMessage.includes("captcha") || errorMessage.includes("401")) {
+        throw new Error("MusixMatch API is currently unavailable due to rate limiting or bot detection. This is a known issue with scraping-based approaches. Consider using an official API or trying again later.");
+      }
+      
+      throw new Error(`Failed to search tracks: ${errorMessage}`);
     }
   },
 });
@@ -208,8 +294,19 @@ export const getTrack = action({
     try {
       // First get track info
       const trackResponse = await musixMatchAPI.getTrack(args.trackId);
+      
       if (trackResponse.message.header.status_code !== 200) {
-        throw new Error(`MusixMatch API error: ${trackResponse.message.header.status_code}`);
+        const statusCode = trackResponse.message.header.status_code;
+        const hint = trackResponse.message.header.hint;
+        
+        if (statusCode === 401) {
+          if (hint === "captcha") {
+            throw new Error("MusixMatch API is currently blocking requests with captcha challenges. This may indicate rate limiting or bot detection. Please try again later.");
+          }
+          throw new Error(`MusixMatch API authentication failed. ${hint ? `Hint: ${hint}` : 'The authentication secret may be invalid or expired.'}`);
+        }
+        
+        throw new Error(`MusixMatch API error: Status ${statusCode}${hint ? `, Hint: ${hint}` : ''}`);
       }
 
       const track = trackResponse.message.body.track;
@@ -221,6 +318,8 @@ export const getTrack = action({
           const lyricsResponse = await musixMatchAPI.getTrackLyrics(args.trackId);
           if (lyricsResponse.message.header.status_code === 200) {
             lyricsBody = lyricsResponse.message.body.lyrics.lyrics_body;
+          } else if (lyricsResponse.message.header.status_code === 401) {
+            console.warn(`MusixMatch API blocked lyrics request for track ${args.trackId} (401 with captcha)`);
           }
         } catch (error) {
           console.warn(`Could not fetch lyrics for track ${args.trackId}:`, error);
@@ -240,7 +339,14 @@ export const getTrack = action({
       };
     } catch (error) {
       console.error(`Error fetching track ${args.trackId}:`, error);
-      throw new Error(`Failed to fetch track: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Provide helpful error message for common issues
+      if (errorMessage.includes("captcha") || errorMessage.includes("401")) {
+        throw new Error("MusixMatch API is currently unavailable due to rate limiting or bot detection. This is a known issue with scraping-based approaches. Consider using an official API or trying again later.");
+      }
+      
+      throw new Error(`Failed to fetch track: ${errorMessage}`);
     }
   },
 });
