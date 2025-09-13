@@ -5,7 +5,7 @@ Lyrix is a powerful song organizer and lyrics analysis tool designed for music l
 ## ✨ features
 
 * **song organization**: build and manage your personal music library.
-* **lyrics integration**: fetch and display song lyrics using the LRCLIB API.
+* **lyrics integration**: fetch and display song lyrics using the MusixMatch API with community access.
 * **youtube integration**: link music videos from YouTube directly to songs in your library.
 * **in-depth analysis**: add comments and annotations to specific lyric selections.
 * **ai-powered insights**: leverage artificial intelligence for complex data analysis of lyrical themes, patterns, and sentiment.
@@ -16,7 +16,7 @@ Lyrix is a powerful song organizer and lyrics analysis tool designed for music l
 * **frontend**: React, Vite, Wouter, nuqs, Tailwind CSS, shadcn/ui
 * **backend**: Convex
 * **apis**:
-    * [LRCLIB API](https://lrclib.net/api-docs) for fetching song lyrics.
+    * [MusixMatch API](https://developer.musixmatch.com/) for fetching song lyrics with community access.
     * [YouTube API](https://developers.google.com/youtube/v3) for video integration and search.
 
 ## 🚀 roadmap
@@ -26,7 +26,7 @@ our project is under active development. here is our current progress:
 * ✅ **core functionality**
     * [x] personal song library (`My Library`)
     * [x] song database (`Songs`)
-    * [x] lyrics fetching via LRCLIB API
+    * [x] lyrics fetching via MusixMatch API with debouncing
 * 📝 **upcoming features**
     * [ ] youtube api integration (search and link mvs)
     * [ ] advanced commenting (link comments to lyric selections)
