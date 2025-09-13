@@ -1,10 +1,12 @@
 import { useQuery as useTSQuery } from "@tanstack/react-query";
 import api from "@/cvx";
 import { useQuery } from "convex/react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Infer } from "convex/values";
 import { commentValidator } from "convex/comments";
 import { minimalCommentValidator } from "convex/share";
+import { useDebounce } from "@/lib/useDebounce";
+import { useAction } from "convex/react";
 
 export type Comment = Infer<typeof commentValidator>;
 export type MinimalComment = Infer<typeof minimalCommentValidator>;
@@ -31,41 +33,70 @@ export const useTrackSearch = (query: {
   data: Song[];
 } => {
   const { q, scope } = query;
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  
+  // Debounce the search query to avoid hitting rate limits
+  const debouncedSetQuery = useDebounce((searchQuery: string) => {
+    setDebouncedQuery(searchQuery);
+  }, 500);
 
-  const searchParams = {
-    q: scope === "all" ? q : "",
-    track_name: scope === "song" ? q : "",
-    artist_name: scope === "artist" ? q : "",
-    album_name: scope === "album" ? q : "",
-  };
+  useEffect(() => {
+    debouncedSetQuery(q);
+  }, [q, debouncedSetQuery]);
+
   const library = useQuery(api.library.getLibrary, {});
-  const params = new URLSearchParams(searchParams as Record<string, string>);
+  const searchTracksAction = useAction(api.musixmatch.searchTracks);
+  
+  // Build the search query based on scope
+  const searchQuery = useMemo(() => {
+    if (!debouncedQuery.trim()) return "";
+    
+    switch (scope) {
+      case "song":
+        return `track:"${debouncedQuery}"`;
+      case "artist":
+        return `artist:"${debouncedQuery}"`;
+      case "album":
+        return `album:"${debouncedQuery}"`;
+      case "all":
+      default:
+        return debouncedQuery;
+    }
+  }, [debouncedQuery, scope]);
+
   const { isLoading, data } = useTSQuery({
-    queryKey: ["trackSearch", query],
+    queryKey: ["trackSearch", searchQuery, scope],
     queryFn: async () => {
-      const response = await fetch(
-        `https://lrclib.net/api/search?${params.toString()}`,
-      );
-      const data = await response.json();
-      return data as Song[];
+      try {
+        const tracks = await searchTracksAction({ query: searchQuery });
+        return tracks;
+      } catch (error) {
+        console.error("Error searching tracks:", error);
+        return [];
+      }
     },
-    enabled: Boolean(q),
+    enabled: Boolean(searchQuery),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2,
   });
-  if (!q) {
+
+  if (!q.trim()) {
     return {
       isLoading: false,
       data: [],
     };
   }
+  
   if (isLoading || data == undefined || library == undefined) {
     return {
       isLoading: true,
       data: [],
     };
   }
+  
   return {
     isLoading,
-    data: data.map((song) => ({
+    data: data.map((song: Song) => ({
       ...song,
       isSaved: library.includes(song.id),
     })),
@@ -81,17 +112,29 @@ export const useLibrary = (opts?: {
   const library = useQuery(api.library.getLibrary, {
     filterForComments: opts?.withComments,
   });
+  const getTrackAction = useAction(api.musixmatch.getTrack);
 
-  const getPromiseForId = async (id: number) =>
-    await fetch(`https://lrclib.net/api/get/${id}`)
-      .then((res) => res.json())
-      .then(
-        (j) =>
-          ({
-            ...j,
-            isSaved: true,
-          }) as Song,
-      );
+  const getPromiseForId = async (id: number) => {
+    try {
+      const track = await getTrackAction({ trackId: id });
+      return { ...track, isSaved: true };
+    } catch (error) {
+      console.error(`Error fetching track ${id}:`, error);
+      // Return a minimal song object as fallback
+      return {
+        id,
+        name: "Unknown Song",
+        trackName: "Unknown Song",
+        artistName: "Unknown Artist", 
+        albumName: "Unknown Album",
+        duration: 0,
+        instrumental: false,
+        plainLyrics: "",
+        syncedLyrics: "",
+        isSaved: true,
+      };
+    }
+  };
 
   const { isLoading, data } = useTSQuery({
     queryKey: ["userLibrary", library, opts?.withComments],
@@ -100,13 +143,17 @@ export const useLibrary = (opts?: {
       return data as Song[];
     },
     enabled: library != undefined,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    retry: 2,
   });
+  
   if (data == undefined || library == undefined) {
     return {
       isLoading: true,
       data: [],
     };
   }
+  
   return {
     isLoading,
     data,
@@ -117,20 +164,24 @@ export const useSong = (
   id: number | null,
 ): { isLoading: boolean; data?: Song } => {
   const library = useQuery(api.library.getLibrary, {});
+  const getTrackAction = useAction(api.musixmatch.getTrack);
+  
   const { isLoading, data } = useTSQuery({
     queryKey: ["song", id],
     queryFn: async () => {
-      const response = await fetch(`https://lrclib.net/api/get/${id}`);
-      if (!response.ok) {
-        throw new Error(`Error fetching song: ${response.statusText}`);
+      try {
+        const track = await getTrackAction({ trackId: id! });
+        return track;
+      } catch (error) {
+        console.error(`Error fetching song ${id}:`, error);
+        throw new Error(`Error fetching song: ${error instanceof Error ? error.message : String(error)}`);
       }
-      const song = await response.json();
-      return {
-        ...song,
-      } as Song;
     },
     enabled: id != null && library !== undefined,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2,
   });
+  
   return {
     isLoading: isLoading || library === undefined,
     data: data && {

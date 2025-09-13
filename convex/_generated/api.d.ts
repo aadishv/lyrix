@@ -18,6 +18,7 @@ import type * as authFunctions from "../authFunctions.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as library from "../library.js";
+import type * as musixmatch from "../musixmatch.js";
 import type * as share from "../share.js";
 
 /**
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   http: typeof http;
   library: typeof library;
+  musixmatch: typeof musixmatch;
   share: typeof share;
 }>;
 export declare const api: FilterApi<

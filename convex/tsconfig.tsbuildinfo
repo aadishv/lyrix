@@ -1,1 +1,1 @@
-{"root":["./auth.config.ts","./auth.ts","./authFunctions.ts","./comments.ts","./http.ts","./library.ts","./schema.ts","./share.ts"],"errors":true,"version":"5.9.2"}
+{"root":["./auth.config.ts","./auth.ts","./authFunctions.ts","./comments.ts","./http.ts","./library.ts","./musixmatch.ts","./schema.ts","./share.ts"],"errors":true,"version":"5.7.3"}
