@@ -81,37 +81,6 @@ export const getSharedComments = query({
   },
   returns: v.union(v.null(), v.array(minimalCommentValidator)),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
-    const items = await ctx.db
-      .query("shared")
-      .withIndex("song_and_link", (q) =>
-        q.eq("song", args.songId).eq("link", args.link),
-      )
-      .collect();
-    if (items.length == 0) {
-      return null;
-    }
-    if (Array.isArray(items[0].comments)) {
-      return items[0].comments;
-    } else {
-     const userComments: Array<Infer<typeof commentValidator>> = await ctx.runQuery(internal.comments.getUserCommentsForSongInternal, {
-        songId: args.songId,
-        userId: items[0].comments,
-      });
-      return toMinimal(userComments);
-    }
-  },
-});
-
-export const getSharedCommentsPublic = query({
-  args: {
-    songId: v.number(),
-    link: v.string(),
-  },
-  returns: v.union(v.null(), v.array(minimalCommentValidator)),
-  handler: async (ctx, args) => {
-    // This function is public and doesn't require authentication
     const items = await ctx.db
       .query("shared")
       .withIndex("song_and_link", (q) =>

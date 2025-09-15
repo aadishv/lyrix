@@ -369,68 +369,7 @@ function SharedSongPage({ id, link, close }: { id: number, link: string, close: 
 }
 
 function SharedSongContent({ id, link, data }: { id: number, link: string, data: Song }) {
-  return (
-    <>
-      <Authenticated>
-        <AuthenticatedSharedContent id={id} link={link} data={data} />
-      </Authenticated>
-      <Unauthenticated>
-        <UnauthenticatedSharedContent id={id} link={link} data={data} />
-      </Unauthenticated>
-    </>
-  );
-}
-
-function AuthenticatedSharedContent({ id, link, data }: { id: number, link: string, data: Song }) {
   const comments = useQuery(api.share.getSharedComments, {
-    songId: id,
-    link: link,
-  }) ?? [];
-
-  return (
-    <div
-      className="flex relative"
-      style={{ height: "calc(100vh - 192px)" }}
-    >
-      {/* lyrics */}
-      <div className="w-[66%] relative">
-        <div className="absolute inset-4 overflow-y-auto">
-          <div className="text-sm whitespace-pre-wrap font-mono grid grid-cols-1 grid-rows-1">
-            {comments && (
-              <MinimalCommentHighlight
-                comments={comments}
-                song={data}
-              />
-            )}
-            <div
-              id="song-lyrics"
-              style={{
-                letterSpacing: 0,
-                fontSize: "1em",
-                gridArea: "1/1",
-                zIndex: 1,
-              }}
-            >
-              {data.plainLyrics || "No lyrics found."}
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* comments */}
-      <div className="w-[33%] relative">
-        <div className="absolute inset-0 overflow-y-auto flex flex-col gap-4 p-4">
-          {comments &&
-            comments.map((comment) => (
-              <CommentReadonly key={JSON.stringify(comment)} comment={comment} song={data} />
-            ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function UnauthenticatedSharedContent({ id, link, data }: { id: number, link: string, data: Song }) {
-  const comments = useQuery(api.share.getSharedCommentsPublic, {
     songId: id,
     link: link,
   }) ?? [];
