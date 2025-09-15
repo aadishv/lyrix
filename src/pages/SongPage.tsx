@@ -7,6 +7,7 @@ import {
   useCommentsForSong,
   useElementSelection,
   useSong,
+  useSongPublic,
 } from "@/hooks";
 import { useMutation, useQuery } from "convex/react";
 import { Redirect } from "wouter";
@@ -33,6 +34,8 @@ import { Link, Plus, Save, Share2, Trash } from "lucide-react";
 import { ShareLinkComponent } from "@/components/ShareLink";
 import { Suspense, useEffect, useState } from "react";
 import { useQueryState } from "nuqs";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { Authenticated, Unauthenticated } from "convex/react";
 
 function SongDetails({ song }: { song: Song }) {
   /* info card */
@@ -334,12 +337,8 @@ function SongPageInternal({ id }: { id: number }) {
 }
 
 function SharedSongPage({ id, link, close }: { id: number, link: string, close: () => void }) {
-  const { isLoading, data } = useSong(id);
-
-  const comments = useQuery(api.share.getSharedComments, {
-    songId: id,
-    link: link,
-  }) ?? [];
+  const { isLoading, data } = useSongPublic(id);
+  const { signIn } = useAuthActions();
 
   return (
     <div className="fixed inset-0 flex flex-col w-full overflow-hidden pt-16 lg:px-16 px-4">
@@ -350,50 +349,69 @@ function SharedSongPage({ id, link, close }: { id: number, link: string, close: 
           {/* card */}
           <div className="flex-shrink-0 z-10 flex flex-row rounded-lg border shadow bg-white relative">
             <SongDetails song={data} />
-            <span className="bg-secondary my-2 rounded-xl pl-3 mb-auto">This is a shared snapshot of someone's comments on this song. <Button variant="ghost" onClick={close}>View original song</Button></span>
-          </div>
-          <div
-            className="flex relative"
-            style={{ height: "calc(100vh - 192px)" }}
-          >
-            {/* lyrics */}
-            <div className="w-[66%] relative">
-              <div className="absolute inset-4 overflow-y-auto">
-                <div className="text-sm whitespace-pre-wrap font-mono grid grid-cols-1 grid-rows-1">
-                  {comments && data?.isSaved && (
-                    <MinimalCommentHighlight
-                      comments={comments}
-                      song={data}
-                    />
-                  )}
-                  <div
-                    id="song-lyrics"
-                    style={{
-                      letterSpacing: 0,
-                      fontSize: "1em",
-                      gridArea: "1/1",
-                      zIndex: 1,
-                    }}
-                  >
-                    {data.plainLyrics || "No lyrics found."}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* comments */}
-            <div className="w-[33%] relative">
-              <div className="absolute inset-0 overflow-y-auto flex flex-col gap-4 p-4">
-                {comments &&
-                  comments.map((comment) => (
-                    <CommentReadonly key={JSON.stringify(comment)} comment={comment} song={data} />
-                  ))}
-              </div>
+            <div className="bg-secondary my-2 rounded-xl pl-3 pr-3 mb-auto flex items-center gap-2">
+              <span>This is a shared snapshot of someone's comments on this song.</span>
+              <Authenticated>
+                <Button variant="ghost" onClick={close}>View original song</Button>
+              </Authenticated>
+              <Unauthenticated>
+                <Button variant="ghost" onClick={() => void signIn("google")}>Sign in to view full features</Button>
+              </Unauthenticated>
             </div>
           </div>
+          <SharedSongContent id={id} link={link} data={data} />
         </div>
       ) : (
         <div className="text-destructive">Song not found.</div>
       )}
+    </div>
+  );
+}
+
+function SharedSongContent({ id, link, data }: { id: number, link: string, data: Song }) {
+  const comments = useQuery(api.share.getSharedComments, {
+    songId: id,
+    link: link,
+  }) ?? [];
+
+  return (
+    <div
+      className="flex relative"
+      style={{ height: "calc(100vh - 192px)" }}
+    >
+      {/* lyrics */}
+      <div className="w-[66%] relative">
+        <div className="absolute inset-4 overflow-y-auto">
+          <div className="text-sm whitespace-pre-wrap font-mono grid grid-cols-1 grid-rows-1">
+            {comments && (
+              <MinimalCommentHighlight
+                comments={comments}
+                song={data}
+              />
+            )}
+            <div
+              id="song-lyrics"
+              style={{
+                letterSpacing: 0,
+                fontSize: "1em",
+                gridArea: "1/1",
+                zIndex: 1,
+              }}
+            >
+              {data.plainLyrics || "No lyrics found."}
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* comments */}
+      <div className="w-[33%] relative">
+        <div className="absolute inset-0 overflow-y-auto flex flex-col gap-4 p-4">
+          {comments &&
+            comments.map((comment) => (
+              <CommentReadonly key={JSON.stringify(comment)} comment={comment} song={data} />
+            ))}
+        </div>
+      </div>
     </div>
   );
 }

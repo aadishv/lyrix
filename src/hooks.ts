@@ -140,6 +140,30 @@ export const useSong = (
   };
 };
 
+export const useSongPublic = (
+  id: number | null,
+): { isLoading: boolean; data?: Song } => {
+  const { isLoading, data } = useTSQuery({
+    queryKey: ["song-public", id],
+    queryFn: async () => {
+      const response = await fetch(`https://lrclib.net/api/get/${id}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching song: ${response.statusText}`);
+      }
+      const song = await response.json();
+      return {
+        ...song,
+        isSaved: false, // For public access, song is never saved
+      } as Song;
+    },
+    enabled: id != null,
+  });
+  return {
+    isLoading,
+    data,
+  };
+};
+
 export const useCommentsForSong = (
   songId: number,
 ): {

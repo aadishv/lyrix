@@ -10,9 +10,15 @@ import { GoogleLogo, GitHubLogo } from "./logos";
 
 import { ReactNode } from "react";
 import { NuqsAdapter } from "nuqs/adapters/react"; // For plain React SPAs
+import { useLocation } from "wouter";
 
 export default function ProviderWrapper({ children }: { children: ReactNode }) {
   const { signIn } = useAuthActions();
+  const [location] = useLocation();
+  
+  // Check if this is a shared song page (has shared parameter)
+  const isSharedPage = location.startsWith('/song') && new URLSearchParams(window.location.search).has('shared');
+  
   return (
     <main>
       <Authenticated>
@@ -24,22 +30,31 @@ export default function ProviderWrapper({ children }: { children: ReactNode }) {
         </NuqsAdapter>
       </Authenticated>
       <Unauthenticated>
-        <div className="w-screen h-screen flex flex-col items-center justify-center gap-2">
-          <Button
-            variant="default"
-            type="button"
-            onClick={() => void signIn("google")}
-          >
-            <GoogleLogo className="mr-2 h-4 w-4" /> Sign in with Google
-          </Button>
-          <Button
-            variant="default"
-            type="button"
-            onClick={() => void signIn("github")}
-          >
-            <GitHubLogo className="mr-2 h-4 w-4" /> Sign in with Github
-          </Button>
-        </div>
+        {isSharedPage ? (
+          <NuqsAdapter>
+            <QueryClientProvider client={queryClient}>
+              {children}
+              <Toaster />
+            </QueryClientProvider>
+          </NuqsAdapter>
+        ) : (
+          <div className="w-screen h-screen flex flex-col items-center justify-center gap-2">
+            <Button
+              variant="default"
+              type="button"
+              onClick={() => void signIn("google")}
+            >
+              <GoogleLogo className="mr-2 h-4 w-4" /> Sign in with Google
+            </Button>
+            <Button
+              variant="default"
+              type="button"
+              onClick={() => void signIn("github")}
+            >
+              <GitHubLogo className="mr-2 h-4 w-4" /> Sign in with Github
+            </Button>
+          </div>
+        )}
       </Unauthenticated>
     </main>
   );
