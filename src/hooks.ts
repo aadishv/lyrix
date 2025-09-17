@@ -11,7 +11,6 @@ export type MinimalComment = Infer<typeof minimalCommentValidator>;
 
 export type Song = {
   id: number;
-  name: string;
   trackName: string;
   artistName: string;
   albumName: string;
