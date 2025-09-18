@@ -1,3 +1,5 @@
+* cache searches
+
 # Lyrix 🎵
 
 Lyrix is a powerful song organizer and lyrics analysis tool designed for music lovers and researchers. It allows you to build your personal music library, analyze lyrical content, and uncover deeper insights with AI-powered data analysis.

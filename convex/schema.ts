@@ -1,6 +1,8 @@
 import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { v, Validator } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
+import { Artist } from "@spotify/web-api-ts-sdk";
+import { trackValidator } from "./utils";
 
 // The schema is normally optional, but Convex Auth
 // requires indexes defined on `authTables`.
@@ -9,10 +11,12 @@ export default defineSchema({
   ...authTables,
   saved: defineTable({
     user: v.id("users"),
+    // TODO(rewrite): saved_v2 should link to v.id("songs_v2")
     song: v.number(),
   }).index("user", ["user"]),
   comments: defineTable({
     user: v.id("users"),
+    // TODO(rewrite): move to v.id("songs_v2")
     song: v.number(),
     start: v.number(),
     end: v.number(),
@@ -26,6 +30,7 @@ export default defineSchema({
     comment: v.id("comments"),
     start: v.number(),
     end: v.number(),
+    // TODO(rewrite): move to v.id("songs_v2")
     song: v.number(),
     user: v.id("users"),
   })
@@ -33,6 +38,7 @@ export default defineSchema({
     .index("user", ["user"]),
   shared: defineTable({
     user: v.id("users"),
+    // TODO(rewrite): move to v.id("songs_v2")
     song: v.number(),
     link: v.string(),
 
@@ -48,4 +54,14 @@ export default defineSchema({
       }),
     ), v.id("users")),
   }).index("song_and_link", ["song", "link"]),
+  // db v2 (data layer)
+  songs_v2: defineTable({
+    track: trackValidator,
+    artists: v.any() as Validator<Artist[]>,
+    lyrics: v.string(),
+  }).index("track", ["track"]),
+  saved_v2: defineTable({
+    user: v.id("users"),
+    track: v.id("songs_v2"),
+  }).index("user_and_track", ["user", "track"]),
 });

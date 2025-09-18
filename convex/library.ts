@@ -5,7 +5,6 @@ import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 // import { Song, SongConvexs } from "../src/api"
 export const saveSong = mutation({
-  // Validators for arguments.
   args: {
     id: v.number(),
   },

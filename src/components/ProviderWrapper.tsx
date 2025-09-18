@@ -25,7 +25,7 @@ export default function ProviderWrapper({ children }: { children: ReactNode }) {
         <NuqsAdapter>
           <QueryClientProvider client={queryClient}>
             {children}
-            <Toaster />
+            <Toaster richColors />
           </QueryClientProvider>
         </NuqsAdapter>
       </Authenticated>
