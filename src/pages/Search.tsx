@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@uidotdev/usehooks";
-import { Song } from "@/hooks";
 import SongTable from "@/components/SongTable";
 import { useAction } from "convex/react";
 import api from "@/cvx";
@@ -10,7 +9,7 @@ import { useState } from "react";
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const debouncedQ = useDebounce(query, 250);
-  const search = useAction(api.search.search);
+  const search = useAction(api.v2.songs.search);
 
 
   const { data, isLoading } = useQuery({
@@ -22,16 +21,6 @@ export default function SearchPage() {
     },
   });
 
-  const adjustedData: Song[] = (data ?? []).map((item) => ({
-    id: 2923750,
-    duration: item.duration_ms / 1000,
-    trackName: item.name,
-    artistName: item.artists.map(a => a.name).join(", "),
-    albumName: item.album.name,
-    instrumental: false,
-    plainLyrics: "SUCKER",
-    syncedLyrics: "SUCKER",
-  }));
 
   return (
     <div className="flex flex-col gap-4">

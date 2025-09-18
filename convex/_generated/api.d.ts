@@ -18,8 +18,10 @@ import type * as authFunctions from "../authFunctions.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as library from "../library.js";
-import type * as search from "../search.js";
 import type * as share from "../share.js";
+import type * as utils from "../utils.js";
+import type * as v2_library from "../v2/library.js";
+import type * as v2_songs from "../v2/songs.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,8 +37,10 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   http: typeof http;
   library: typeof library;
-  search: typeof search;
   share: typeof share;
+  utils: typeof utils;
+  "v2/library": typeof v2_library;
+  "v2/songs": typeof v2_songs;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

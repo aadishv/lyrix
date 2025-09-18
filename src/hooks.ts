@@ -9,68 +9,6 @@ import { minimalCommentValidator } from "convex/share";
 export type Comment = Infer<typeof commentValidator>;
 export type MinimalComment = Infer<typeof minimalCommentValidator>;
 
-export type Song = {
-  id: number;
-  trackName: string;
-  artistName: string;
-  albumName: string;
-  duration: number;
-  instrumental: boolean;
-  plainLyrics: string;
-  syncedLyrics: string;
-} & {
-  isSaved?: boolean;
-};
-
-export const useTrackSearch = (query: {
-  q: string;
-  scope: "all" | "song" | "artist" | "album";
-}): {
-  isLoading: boolean;
-  data: Song[];
-} => {
-  const { q, scope } = query;
-
-  const searchParams = {
-    q: scope === "all" ? q : "",
-    track_name: scope === "song" ? q : "",
-    artist_name: scope === "artist" ? q : "",
-    album_name: scope === "album" ? q : "",
-  };
-  const library = useQuery(api.library.getLibrary, {});
-  const params = new URLSearchParams(searchParams as Record<string, string>);
-  const { isLoading, data } = useTSQuery({
-    queryKey: ["trackSearch", query],
-    queryFn: async () => {
-      const response = await fetch(
-        `https://lrclib.net/api/search?${params.toString()}`,
-      );
-      const data = await response.json();
-      return data as Song[];
-    },
-    enabled: Boolean(q),
-  });
-  if (!q) {
-    return {
-      isLoading: false,
-      data: [],
-    };
-  }
-  if (isLoading || data == undefined || library == undefined) {
-    return {
-      isLoading: true,
-      data: [],
-    };
-  }
-  return {
-    isLoading,
-    data: data.map((song) => ({
-      ...song,
-      isSaved: library.includes(song.id),
-    })),
-  };
-};
-
 export const useLibrary = (opts?: {
   withComments?: boolean;
 }): {
