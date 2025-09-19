@@ -6,19 +6,33 @@ import { Input } from "@/components/ui/input";
 
 import { useQueryState } from "nuqs";
 import Fuse from "fuse.js";
+import { useQuery } from "convex/react";
+import api from "@/cvx";
 
 export default function LibraryPage() {
-  const { data, isLoading } = useLibrary();
+  const data = useQuery(
+    api.v2.library.getLibrary,
+    {
+      filterForComments: false,
+    }
+  );
+  const searchData = data?.map((item) => ({
+    uri: item.track.uri,
+    artistName: item.track.artists[0].name,
+    albumName: item.track.album.name,
+    name: item.track.name,
+    item,
+  }));
   const [query, setQuery] = useQueryState<string>("query", {
     defaultValue: "",
     parse: (v) => v,
   });
 
   const fuse = useMemo(() => {
-    if (!data) return null;
+    if (!searchData) return null;
     const options = {
       keys: [
-        { name: "trackName", weight: 0.4 },
+        { name: "name", weight: 0.4 },
         { name: "artistName", weight: 0.3 },
         { name: "albumName", weight: 0.2 },
       ],
@@ -26,15 +40,15 @@ export default function LibraryPage() {
       includeScore: true,
     };
 
-    return new Fuse(data, options);
-  }, [data]);
+    return new Fuse(searchData, options);
+  }, [searchData]);
 
   const filteredData = useMemo(() => {
     if (!data || !query.trim()) return data;
     if (!fuse) return data;
 
     const results = fuse.search(query);
-    return results.map((result) => result.item);
+    return results.map((result) => result.item.item);
   }, [data, query, fuse]);
 
   return (
@@ -51,7 +65,7 @@ export default function LibraryPage() {
           className="w-full"
         />
       </div>
-      <SongTable isLoading={isLoading} data={filteredData} />
+      <SongTable isLoading={filteredData === undefined} data={filteredData?.map(t => t.track)} />
     </div>
   );
 }

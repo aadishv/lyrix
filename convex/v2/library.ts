@@ -1,8 +1,27 @@
-import { v } from "convex/values";
+import { Infer, v, Validator } from "convex/values";
 import { mutation, query } from "../_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { api } from "../_generated/api";
-import { Id } from "../_generated/dataModel";
+import { Doc, Id } from "../_generated/dataModel";
+import { trackValidator } from "../utils";
+
+const getSongValidator = v.object({
+  track: v.any() as Validator<Doc<"songs_v2">>,
+  saved: v.boolean(),
+});
+export const getSong = query({
+  args: {
+    track: v.id("songs_v2"),
+  },
+  returns: getSongValidator,
+  handler: async (ctx, { track }) => {
+    const song = await ctx.db.get(track);
+    if (!song) throw new Error("Song not found");
+    const exists_or_null: Id<"saved_v2"> | null = await ctx.runQuery(api.v2.library.hasSavedTrack, { track });
+    const result: Infer<typeof getSongValidator> = { track: song, saved: exists_or_null !== null };
+    return result;
+  },
+});
 
 export const saveTrack = mutation({
   args: {
@@ -12,7 +31,7 @@ export const saveTrack = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
     const exists = await ctx.runQuery(api.v2.library.hasSavedTrack, { track });
-    if (exists != null) {
+    if (exists !== null) {
       // TODO: reimplement
       // const comments = await ctx.runQuery(api.comments.getUserCommentsForSong, {
       //   songId: id,

@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as library from "../library.js";
 import type * as share from "../share.js";
 import type * as utils from "../utils.js";
+import type * as v2_comments from "../v2/comments.js";
 import type * as v2_library from "../v2/library.js";
 import type * as v2_songs from "../v2/songs.js";
 
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   library: typeof library;
   share: typeof share;
   utils: typeof utils;
+  "v2/comments": typeof v2_comments;
   "v2/library": typeof v2_library;
   "v2/songs": typeof v2_songs;
 }>;

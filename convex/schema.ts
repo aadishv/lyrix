@@ -11,12 +11,10 @@ export default defineSchema({
   ...authTables,
   saved: defineTable({
     user: v.id("users"),
-    // TODO(rewrite): saved_v2 should link to v.id("songs_v2")
     song: v.number(),
   }).index("user", ["user"]),
   comments: defineTable({
     user: v.id("users"),
-    // TODO(rewrite): move to v.id("songs_v2")
     song: v.number(),
     start: v.number(),
     end: v.number(),
@@ -30,7 +28,6 @@ export default defineSchema({
     comment: v.id("comments"),
     start: v.number(),
     end: v.number(),
-    // TODO(rewrite): move to v.id("songs_v2")
     song: v.number(),
     user: v.id("users"),
   })
@@ -64,4 +61,25 @@ export default defineSchema({
     user: v.id("users"),
     track: v.id("songs_v2"),
   }).index("user_and_track", ["user", "track"]),
+  comments_v2: defineTable({
+    user: v.id("users"),
+    track: v.id("songs_v2"),
+    start: v.number(),
+    end: v.number(),
+    color: v.string(),
+    title: v.string(),
+    content: v.string(),
+  })
+    .index("track_and_user", ["track", "user"])
+    .index("user", ["user"]),
+  linkedComments_v2: defineTable({
+    comment: v.id("comments_v2"),
+    start: v.number(),
+    end: v.number(),
+    track: v.id("songs_v2"),
+    user: v.id("users"),
+  })
+    .index("track_and_user", ["track", "user"])
+    .index("comment", ["comment"])
+    .index("user", ["user"]),
 });

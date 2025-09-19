@@ -3,7 +3,7 @@ import api from "@/cvx";
 import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import { Infer } from "convex/values";
-import { commentValidator } from "convex/comments";
+import { commentValidator } from "convex/v2/comments";
 import { minimalCommentValidator } from "convex/share";
 
 export type Comment = Infer<typeof commentValidator>;

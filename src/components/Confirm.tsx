@@ -25,7 +25,7 @@ export default function Confirm({
   disabled?: boolean;
 }) {
   if (disabled) {
-    return <span>{children}</span>;
+    return <span onClick={onConfirm}>{children}</span>;
   }
   return (
     <Dialog>

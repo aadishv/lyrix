@@ -96,7 +96,7 @@ function App() {
           Sign out
         </Button>
       </div>
-      <div className="mt-[10vh] mx-[10vw]">
+      <div className="mt-[10vh] mx-24">
         <Switch>
           <Route path="/">
             <SearchPage />
@@ -104,7 +104,7 @@ function App() {
           <Route path="/library">
             <LibraryPage />
           </Route>
-          <Route path="/song">
+          <Route path="/song_v2">
             <SongPage />
           </Route>
           <Route path="/comments">
