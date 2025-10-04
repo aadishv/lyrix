@@ -11,12 +11,13 @@ import { Button } from "./components/ui/button";
 import { useAuthActions } from "@convex-dev/auth/react";
 import api from "./cvx";
 import { useQuery } from "convex/react";
-import { Library, MessageSquare, Search } from "lucide-react";
+import { Library, MessageSquare, Search, ScrollText } from "lucide-react";
 import SearchPage from "./pages/Search";
 import LibraryPage from "./pages/Library";
 import SongPage from "./pages/SongPage";
 import { useState, useEffect } from "react";
 import CommentPage from "./pages/CommentPage";
+import LyricsPage from "./pages/Lyrics";
 
 function NotFound() {
   const [count, setCount] = useState(3);
@@ -79,6 +80,12 @@ function App() {
                 <span className="my-auto">Comments</span>
               </Link>
             </NavigationMenuLink>
+            <NavigationMenuLink asChild>
+              <Link href="/lyrics" className="flex !flex-row">
+                <ScrollText className="my-auto h-4 w-4" />
+                <span className="my-auto">Lyrics</span>
+              </Link>
+            </NavigationMenuLink>
           </NavigationMenuList>
         </NavigationMenu>
         <div className="flex">
@@ -109,6 +116,9 @@ function App() {
           </Route>
           <Route path="/comments">
             <CommentPage />
+          </Route>
+          <Route path="/lyrics">
+            <LyricsPage />
           </Route>
           <Route>
             <NotFound />

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.81",
+    "@leeoniya/ufuzzy": "^1.0.19",
     "@primer/react": "^37.31.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-checkbox": "^1.3.3",
